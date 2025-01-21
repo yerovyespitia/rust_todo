@@ -91,8 +91,10 @@ fn delete_task(tasks: &mut Vec<Task>) {
     io::stdin().read_line(&mut id).expect("Failed to read line");
 
     let number_string = id.trim();
+    // Convert string to usize
     let id: usize = number_string.parse().expect("Not a valid number");
 
+    // Remove from vec by id
     let task = tasks.remove(id - 1);
     println!("Deleted: {:?}", task);
 }
