@@ -1,4 +1,6 @@
+use std::fs::File;
 use std::io;
+use std::io::prelude::*;
 
 #[derive(Debug)]
 struct Task {
@@ -29,6 +31,11 @@ fn main() {
             "create" => create_task(&mut tasks),
             "list" => list_tasks(&mut tasks),
             "delete" => delete_task(&mut tasks),
+            "test" => {
+                if let Err(e) = test() {
+                    eprint!("Error {}", e)
+                }
+            }
             _ => println!("No valid option"),
         }
     }
@@ -97,4 +104,11 @@ fn delete_task(tasks: &mut Vec<Task>) {
     // Remove from vec by id
     let task = tasks.remove(id - 1);
     println!("Deleted: {:?}", task);
+}
+
+fn test() -> std::io::Result<()> {
+    // Create a file
+    let mut tasks = File::create("tasks.txt")?;
+    tasks.write_all(b"Hello, world")?;
+    Ok(())
 }
