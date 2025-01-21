@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::io;
 use std::io::prelude::*;
 
@@ -92,7 +92,7 @@ fn delete_task(tasks: &mut Vec<Task>) {
         return;
     }
 
-    println!("\nInsert the task id to delete it");
+    println!("\nInsert the task id to delete it: ");
     let mut id = String::new();
 
     io::stdin().read_line(&mut id).expect("Failed to read line");
@@ -107,8 +107,21 @@ fn delete_task(tasks: &mut Vec<Task>) {
 }
 
 fn test() -> std::io::Result<()> {
-    // Create a file
-    let mut tasks = File::create("tasks.txt")?;
-    tasks.write_all(b"Hello, world")?;
+    let file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open("tasks.txt");
+
+    match file {
+        Ok(mut file) => {
+            println!("File created!");
+            file.write_all(b"Hello, world!")?;
+        }
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            println!("File already exists!");
+        }
+        Err(e) => return Err(e),
+    }
+
     Ok(())
 }
