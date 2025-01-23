@@ -31,8 +31,8 @@ fn main() {
             "create" => create_task(&mut tasks),
             "list" => list_tasks(&mut tasks),
             "delete" => delete_task(&mut tasks),
-            "test" => {
-                if let Err(e) = test() {
+            "manage" => {
+                if let Err(e) = manage_file() {
                     eprint!("Error {}", e)
                 }
             }
@@ -106,7 +106,7 @@ fn delete_task(tasks: &mut Vec<Task>) {
     println!("Deleted: {:?}", task);
 }
 
-fn test() -> std::io::Result<()> {
+fn manage_file() -> std::io::Result<()> {
     let file = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -119,6 +119,21 @@ fn test() -> std::io::Result<()> {
         }
         Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
             println!("File already exists!");
+
+            println!("Enter a text");
+            let mut input = String::new();
+
+            io::stdin()
+                .read_line(&mut input)
+                .expect("There was an error");
+
+            let mut file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open("tasks.txt")?;
+
+            file.write_all(format!("\n{}", input.trim()).as_bytes())?;
+            println!("Text added to the file!");
         }
         Err(e) => return Err(e),
     }
