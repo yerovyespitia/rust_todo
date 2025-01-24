@@ -1,21 +1,12 @@
-use std::fs::OpenOptions;
+use std::fs::{self, OpenOptions};
 use std::io;
 use std::io::prelude::*;
-
-#[derive(Debug)]
-struct Task {
-    id: u32,
-    title: String,
-    description: String,
-}
+use std::path::Path;
 
 fn main() {
-    // Create mutable vec (array)
-    let mut tasks: Vec<Task> = Vec::new();
-
     loop {
         let mut action = String::new();
-        println!("\nWhat do you want to do? (create, list, delete or break)");
+        println!("\nWhat do you want to do? (add, list, remove or break): ");
 
         io::stdin()
             .read_line(&mut action)
@@ -28,11 +19,18 @@ fn main() {
         }
 
         match action.as_ref() {
-            "create" => create_task(&mut tasks),
-            "list" => list_tasks(&mut tasks),
-            "delete" => delete_task(&mut tasks),
-            "manage" => {
+            "add" => {
                 if let Err(e) = manage_file() {
+                    eprint!("Error {}", e)
+                }
+            }
+            "list" => {
+                if let Err(e) = read_file() {
+                    eprint!("Error {}", e)
+                }
+            }
+            "remove" => {
+                if let Err(e) = remove_all() {
                     eprint!("Error {}", e)
                 }
             }
@@ -41,102 +39,66 @@ fn main() {
     }
 }
 
-fn create_task(tasks: &mut Vec<Task>) {
-    println!("\nPlease enter a title: ");
-
-    // Declare mutable string variables
-    let mut title = String::new();
-    let mut description = String::new();
-
-    // Enter input
-    io::stdin()
-        .read_line(&mut title)
-        .expect("Failed to read line");
-
-    println!("Please enter a description: ");
-
-    io::stdin()
-        .read_line(&mut description)
-        .expect("Failed to read line");
-
-    // Create new task & add it to vec
-    let task = Task {
-        id: tasks.len() as u32,
-        title: title.trim().to_string(),
-        description: description.trim().to_string(),
-    };
-
-    // add task to vec (array)
-    tasks.push(task);
-
-    // Print new task
-    println!("\nNew task added successfully");
-    println!("\nTitle: {}Description: {}", title, description);
-}
-
-fn list_tasks(tasks: &mut Vec<Task>) {
-    if tasks.is_empty() {
-        println!("\nNo tasks available");
-        return;
-    }
-
-    println!("\nTasks: ");
-    for task in tasks.iter() {
-        println!("{}. {} - {}", task.id + 1, task.title, task.description);
-    }
-}
-
-fn delete_task(tasks: &mut Vec<Task>) {
-    if tasks.is_empty() {
-        println!("\nThere's no task to delete");
-        return;
-    }
-
-    println!("\nInsert the task id to delete it: ");
-    let mut id = String::new();
-
-    io::stdin().read_line(&mut id).expect("Failed to read line");
-
-    let number_string = id.trim();
-    // Convert string to usize
-    let id: usize = number_string.parse().expect("Not a valid number");
-
-    // Remove from vec by id
-    let task = tasks.remove(id - 1);
-    println!("Deleted: {:?}", task);
-}
-
-fn manage_file() -> std::io::Result<()> {
-    let file = OpenOptions::new()
+fn create_file() -> io::Result<()> {
+    // Create file if is not exist
+    OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open("tasks.txt");
+        .open("tasks.txt")?;
+    // println!("\nFile created!");
+    append_to_file()?;
+    Ok(())
+}
 
-    match file {
-        Ok(mut file) => {
-            println!("File created!");
-            file.write_all(b"Hello, world!")?;
-        }
-        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-            println!("File already exists!");
+fn append_to_file() -> io::Result<()> {
+    println!("\nPlease enter a text: ");
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
 
-            println!("Enter a text");
-            let mut input = String::new();
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true) // Write at the last line
+        .open("tasks.txt")?;
 
-            io::stdin()
-                .read_line(&mut input)
-                .expect("There was an error");
+    file.write_all(format!("{}\n", input.trim()).as_bytes())?;
+    // println!("\nText added to the file!");
 
-            let mut file = OpenOptions::new()
-                .write(true)
-                .append(true)
-                .open("tasks.txt")?;
+    Ok(())
+}
 
-            file.write_all(format!("\n{}", input.trim()).as_bytes())?;
-            println!("Text added to the file!");
-        }
-        Err(e) => return Err(e),
+fn read_file() -> io::Result<()> {
+    if Path::new("tasks.txt").exists() {
+        OpenOptions::new().read(true).open("tasks.txt")?;
+        // Read all the file
+        let file = fs::read_to_string("tasks.txt").expect("Unable to read file");
+
+        println!("\n{}", file);
+    } else {
+        println!("\nThere's no tasks to see!");
     }
 
+    Ok(())
+}
+
+fn remove_all() -> io::Result<()> {
+    if Path::new("tasks.txt").exists() {
+        fs::remove_file("tasks.txt")?;
+        println!("\nAll tasks removed");
+    } else {
+        println!("\nThere's no tasks to remove!");
+    }
+
+    Ok(())
+}
+
+fn manage_file() -> io::Result<()> {
+    if let Err(e) = create_file() {
+        if e.kind() == io::ErrorKind::AlreadyExists {
+            // println!("File already exists!");
+            append_to_file()?;
+        } else {
+            return Err(e);
+        }
+    }
     Ok(())
 }
